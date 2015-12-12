@@ -91,7 +91,7 @@ func evaluateList(list:[Node])->Node {
             case "+": return .Atom(String(list.dropFirst().reduce(0) { sum,item in sum + (Double(String(evaluateNode(item))) ?? 0)}))
             case "*": return .Atom(String(list.dropFirst().reduce(1) { product,item in product * (Double(String(evaluateNode(item))) ?? 0)}))
             case "-":
-                let firstValue = Double(String(evaluateNode(list[1])))
+                let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
                 return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item))) ?? 0)}))
             case "write":
                 for item in list.dropFirst() {
