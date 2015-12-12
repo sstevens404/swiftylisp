@@ -17,7 +17,7 @@ func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
     return c
 }
 
-enum Node:CustomStringConvertible {
+enum Node:CustomStringConvertible, Equatable {
     case Atom(String)
     case List([Node])
     
@@ -27,6 +27,14 @@ enum Node:CustomStringConvertible {
         case .List(let l):
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
         }
+    }
+}
+
+func ==(a:Node, b:Node)->Bool {
+    switch (a, b) {
+    case (.Atom(let a), .Atom(let b)): return a == b
+    case (.List(let a), .List(let b)): return a == b
+    default: return false;
     }
 }
 
@@ -113,15 +121,34 @@ func divide(list:[Node])->Node {
     return .Atom(String(result))
 }
 
+func condition(list:[Node])->Node {
+    guard list.count > 2 else { print("if statements must have 3 or 4 elements in the list. exiting."); exit(-1) }
+    let condition = evaluateNode(list[1])
+    if condition != Node.List([Node]()) {
+        return evaluateNode(list[2])
+    } else if list.count > 3 {
+        return evaluateNode(list[3])
+    }
+    
+    return .List([Node]())
+}
+
+func equal(list:[Node])->Node {
+    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    if evaluateNode(list[1]) == evaluateNode(list[2]) {
+        return .Atom("true")
+    } else {
+        return .List([Node]())
+    }
+}
+
 func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
         case .Atom(let atom):
-            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide]
+            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide, "if": condition, "=":equal]
             if let function = functionTable[atom] {
                 return function(list)
-            } else {
-                print ("Unrecognized command: " + atom)
             }
         default: break;
         }
