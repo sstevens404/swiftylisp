@@ -73,6 +73,13 @@ func evaluateList(list:[Node])->Int {
         switch oprand {
         case "+": return list.dropFirst().reduce(0) { sum,item in sum+evaluateNode(item)}
         case "*": return list.dropFirst().reduce(1) { product,item in product*evaluateNode(item)}
+        case "-":
+            var difference = evaluateNode(list[1])
+            let newList = list[2...(list.count-1)]
+            for item in newList{
+                difference = difference - evaluateNode(item)
+            }
+            return difference
         default: return 0
         }
     case .List: return 0 // TODO: handle list as first element
