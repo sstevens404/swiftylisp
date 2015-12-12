@@ -93,6 +93,9 @@ func evaluateList(list:[Node])->Node {
             case "-":
                 let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
                 return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item))) ?? 0)}))
+            case "/":
+                let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
+                return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference / (Double(String(evaluateNode(item))) ?? 0)}))
             case "write":
                 for item in list.dropFirst() {
                     print(evaluateNode(item), terminator:" ")
