@@ -11,13 +11,19 @@ extension Int32 {
     }
 }
 
+func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
+    let c = fgetc(fp)
+    fseek(fp,-1,SEEK_CUR)
+    return c
+}
+
 enum Node:CustomStringConvertible {
     case Atom(String)
     case List([Node])
     
     var description: String {
         switch self {
-        case .Atom(let a): return a
+        case .Atom(let a): return "'\(a)'"
         case .List(let l):
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
         }
@@ -26,6 +32,7 @@ enum Node:CustomStringConvertible {
 
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
     var atom = ""
+    
     while true {
         let c = fgetc(fp)
         if (c.s == " " || c.s == ")" || c == EOF) {
@@ -37,28 +44,39 @@ func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
     return atom
 }
 
+func eatWhitespace(fp:UnsafeMutablePointer<FILE>) {
+    var c:Int32
+    repeat {
+        c = fgetc(fp)
+    } while c == 10 || c == 9 || c.s == " "
+    
+    fseek(fp,-1,SEEK_CUR)
+}
+
 func parseList(fp:UnsafeMutablePointer<FILE>)->[Node] {
     var list = [Node]()
-    let c = fgetc(fp).s
-    if c != "(" {
-        print("error, expected '(', got '\(c)'\nexiting.");
+    let next = fgetc(fp)
+    if next.s != "(" {
+        print("error, expected '(', got '\(next)'\nexiting.");
         exit(0)
     }
     
     while true {
         list.append(parseNode(fp))
+        eatWhitespace(fp)
+        
         let c = fgetc(fp)
         if c.s == ")" || c == EOF {
             return list
         }
+        fseek(fp,-1,SEEK_CUR)
     }
 }
 
 func parseNode(fp:UnsafeMutablePointer<FILE>)->Node {
-    let c = fgetc(fp).s
-    fseek(fp,-1,SEEK_CUR)
+    eatWhitespace(fp)
     
-    if c == "(" {
+    if fpeek(fp).s == "(" {
         return .List(parseList(fp))
     } else {
         return .Atom(parseAtom(fp))
@@ -66,20 +84,28 @@ func parseNode(fp:UnsafeMutablePointer<FILE>)->Node {
 }
 
 func evaluateList(list:[Node])->Int {
-    guard list.count > 1 else { return 0 }
+    guard list.count > 0 else { return 0 }
+    
     switch list.first! {
     case .Atom(let a):
-        let oprand = String(a[a.startIndex])
-        switch oprand {
+        switch a {
         case "+": return list.dropFirst().reduce(0) { sum,item in sum+evaluateNode(item)}
         case "*": return list.dropFirst().reduce(1) { product,item in product*evaluateNode(item)}
         case "-":
             let firstValue = evaluateNode(list[1])
             return list.dropFirst(2).reduce(firstValue) { difference,item in difference - evaluateNode(item)}
-        default: return 0
+        case "write": for item in list.dropFirst() { print(evaluateNode(item), terminator:" ") }; print(""); return 0
+        default:
+            print ("Unrecognized command: " + a)
         }
-    case .List: return 0 // TODO: handle list as first element
+    default: break;
     }
+    
+    for node in list {
+        evaluateNode(node)
+    }
+    
+    return 0
 }
 
 func evaluateNode(node:Node)->Int {
@@ -96,5 +122,4 @@ defer { fclose(fp) }
 
 let rootNode = parseNode(fp)
 print(rootNode)
-let result = evaluateNode(rootNode)
-print("result: \(result)")
+evaluateNode(rootNode)
