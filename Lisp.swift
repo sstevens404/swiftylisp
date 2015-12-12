@@ -23,7 +23,7 @@ enum Node:CustomStringConvertible {
     
     var description: String {
         switch self {
-        case .Atom(let a): return "'\(a)'"
+        case .Atom(let a): return a
         case .List(let l):
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
         }
@@ -83,35 +83,40 @@ func parseNode(fp:UnsafeMutablePointer<FILE>)->Node {
     }
 }
 
-func evaluateList(list:[Node])->Int {
-    guard list.count > 0 else { return 0 }
-    
-    switch list.first! {
-    case .Atom(let a):
-        switch a {
-        case "+": return list.dropFirst().reduce(0) { sum,item in sum+evaluateNode(item)}
-        case "*": return list.dropFirst().reduce(1) { product,item in product*evaluateNode(item)}
-        case "-":
-            let firstValue = evaluateNode(list[1])
-            return list.dropFirst(2).reduce(firstValue) { difference,item in difference - evaluateNode(item)}
-        case "write": for item in list.dropFirst() { print(evaluateNode(item), terminator:" ") }; print(""); return 0
-        default:
-            print ("Unrecognized command: " + a)
+func evaluateList(list:[Node])->Node {
+    if let first = list.first {
+        switch first {
+        case .Atom(let a):
+            switch a {
+            case "+": return .Atom(String(list.dropFirst().reduce(0) { sum,item in sum + (Double(String(evaluateNode(item))) ?? 0)}))
+            case "*": return .Atom(String(list.dropFirst().reduce(1) { product,item in product * (Double(String(evaluateNode(item))) ?? 0)}))
+            case "-":
+                let firstValue = Double(String(evaluateNode(list[1])))
+                return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item))) ?? 0)}))
+            case "write":
+                for item in list.dropFirst() {
+                    print(evaluateNode(item), terminator:" ")
+                }
+                print(""); // newline
+                return .List([Node]())
+            default:
+                print ("Unrecognized command: " + a)
+            }
+        default: break;
         }
-    default: break;
     }
     
     for node in list {
         evaluateNode(node)
     }
     
-    return 0
+    return .List([Node]())
 }
 
-func evaluateNode(node:Node)->Int {
+func evaluateNode(node:Node)->Node {
     switch node {
-    case .Atom(let a): return Int(a) ?? 0
     case .List(let l): return evaluateList(l)
+    default: return node
     }
 }
 
