@@ -83,27 +83,45 @@ func parseNode(fp:UnsafeMutablePointer<FILE>)->Node {
     }
 }
 
+func add(list:[Node])->Node {
+    let result = list.dropFirst().reduce(0) { sum,item in sum + (Double(String(evaluateNode(item))) ?? 0)}
+    return .Atom(String(result))
+}
+
+func multiply(list:[Node])->Node {
+    let result = list.dropFirst().reduce(1) { product,item in product * (Double(String(evaluateNode(item))) ?? 0)}
+    return .Atom(String(result))
+}
+
+func subtract(list:[Node])->Node {
+    let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item))) ?? 0)}
+    return .Atom(String(result))
+}
+
+func write(list:[Node])->Node {
+    for item in list.dropFirst() {
+        print(evaluateNode(item), terminator:" ")
+    }
+    print(""); // newline
+    return .List([Node]())
+}
+
+func divide(list:[Node])->Node {
+    let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference / (Double(String(evaluateNode(item))) ?? 0)}
+    return .Atom(String(result))
+}
+
 func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
-        case .Atom(let a):
-            switch a {
-            case "+": return .Atom(String(list.dropFirst().reduce(0) { sum,item in sum + (Double(String(evaluateNode(item))) ?? 0)}))
-            case "*": return .Atom(String(list.dropFirst().reduce(1) { product,item in product * (Double(String(evaluateNode(item))) ?? 0)}))
-            case "-":
-                let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
-                return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item))) ?? 0)}))
-            case "/":
-                let firstValue = Double(String(evaluateNode(list[1]))) ?? 0
-                return .Atom(String(list.dropFirst(2).reduce(firstValue) { difference,item in difference / (Double(String(evaluateNode(item))) ?? 0)}))
-            case "write":
-                for item in list.dropFirst() {
-                    print(evaluateNode(item), terminator:" ")
-                }
-                print(""); // newline
-                return .List([Node]())
-            default:
-                print ("Unrecognized command: " + a)
+        case .Atom(let atom):
+            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide]
+            if let function = functionTable[atom] {
+                return function(list)
+            } else {
+                print ("Unrecognized command: " + atom)
             }
         default: break;
         }
