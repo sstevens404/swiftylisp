@@ -204,7 +204,7 @@ int main(int argc, const char * argv[]) {
     }
 
     struct Node rootNode = parseNode(fp);
-    // printNode(&rootNode);
+//     printNode(&rootNode);
 
     int result = evaluateNode(&rootNode);
     printf("result: %i\n",result);

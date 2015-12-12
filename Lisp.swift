@@ -11,16 +11,16 @@ extension Int32 {
     }
 }
 
-enum Node {
+enum Node:CustomStringConvertible {
     case Atom(String)
     case List([Node])
-}
-
-func fexpect(fp:UnsafeMutablePointer<FILE>, _ expect:String) {
-    let c = fgetc(fp)
-    if c.s != expect {
-        print("error, expected '\(expect)', got '\(c.s)'\nexiting.");
-        exit(0)
+    
+    var description: String {
+        switch self {
+        case .Atom(let a): return a
+        case .List(let l):
+            return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
+        }
     }
 }
 
@@ -39,7 +39,11 @@ func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
 
 func parseList(fp:UnsafeMutablePointer<FILE>)->[Node] {
     var list = [Node]()
-    fexpect(fp,"(")
+    let c = fgetc(fp).s
+    if c != "(" {
+        print("error, expected '(', got '\(c)'\nexiting.");
+        exit(0)
+    }
     
     while true {
         list.append(parseNode(fp))
@@ -67,8 +71,8 @@ func evaluateList(list:[Node])->Int {
     case .Atom(let a):
         let oprand = String(a[a.startIndex])
         switch oprand {
-        case "+": return list.reduce(0) { sum,item in sum+evaluateNode(item)}
-        case "*": return list.reduce(1) { product,item in product*evaluateNode(item)}
+        case "+": return list.dropFirst().reduce(0) { sum,item in sum+evaluateNode(item)}
+        case "*": return list.dropFirst().reduce(1) { product,item in product*evaluateNode(item)}
         default: return 0
         }
     case .List: return 0 // TODO: handle list as first element
@@ -82,20 +86,12 @@ func evaluateNode(node:Node)->Int {
     }
 }
 
-let arg = Process.arguments
-let fp = fopen(arg.count > 1 ? arg[1]: arg[0], "r")
-    
-if fp == nil {
-    print("couldn't open file")
-    exit(-1)
-}
-
-defer {
-    fclose(fp)
-}
+guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
+let fp = fopen(Process.arguments[1], "r")
+guard fp != nil else { print("couldn't open file");  exit(-1) }
+defer { fclose(fp) }
 
 let rootNode = parseNode(fp)
 print(rootNode)
-
 let result = evaluateNode(rootNode)
 print("result: \(result)")
