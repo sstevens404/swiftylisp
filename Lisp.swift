@@ -174,5 +174,5 @@ guard fp != nil else { print("couldn't open file");  exit(-1) }
 defer { fclose(fp) }
 
 let rootNode = parseNode(fp)
-print(rootNode)
+//print(rootNode)
 evaluateNode(rootNode)
