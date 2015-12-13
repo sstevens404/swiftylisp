@@ -146,7 +146,7 @@ func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
         case .Atom(let atom):
-            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide, "if": condition, "=":equal]
+            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide, "if": condition, "eq?":equal]
             if let function = functionTable[atom] {
                 return function(list)
             }
@@ -167,8 +167,6 @@ func evaluateNode(node:Node)->Node {
     default: return node
     }
 }
-
-
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false
