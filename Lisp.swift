@@ -168,11 +168,24 @@ func evaluateNode(node:Node)->Node {
     }
 }
 
-guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
-let fp = fopen(Process.arguments[1], "r")
-guard fp != nil else { print("couldn't open file");  exit(-1) }
-defer { fclose(fp) }
 
-let rootNode = parseNode(fp)
-//print(rootNode)
-evaluateNode(rootNode)
+
+guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
+var printDebug = false
+for param in Process.arguments.dropFirst() {
+    
+    if param == "--debug" {
+        printDebug = true;
+        continue
+    }
+    
+    let fp = fopen(param, "r")
+    guard fp != nil else { print("Couldn't open file: \(param)");  continue }
+    defer { fclose(fp) }
+    
+    let rootNode = parseNode(fp)
+    if printDebug { print(rootNode) }
+    evaluateNode(rootNode)
+}
+
+
