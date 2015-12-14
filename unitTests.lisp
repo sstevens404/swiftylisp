@@ -21,5 +21,12 @@
 		(write "* 3.5 2" failed)
 	)
 
+	(let pi 3.14159)
+
+	(if (eq? 3.14159 pi)
+		()
+		(write variable "pi" assignment failed)
+	) 
+
 	(write Tests complete)
 )

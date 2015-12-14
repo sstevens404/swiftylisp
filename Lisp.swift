@@ -5,6 +5,7 @@
 #endif
 
 
+
 extension Int32 {
     var s:String {
         return String(Character(UnicodeScalar(UInt32(self))))
@@ -37,6 +38,8 @@ func ==(a:Node, b:Node)->Bool {
     default: return false;
     }
 }
+
+var variables = [String:Node]()
 
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
     var atom = ""
@@ -134,7 +137,8 @@ func condition(list:[Node])->Node {
 }
 
 func equal(list:[Node])->Node {
-    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    guard list.count == 3 else { print("eq? statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    
     if evaluateNode(list[1]) == evaluateNode(list[2]) {
         return .Atom("true")
     } else {
@@ -142,11 +146,39 @@ func equal(list:[Node])->Node {
     }
 }
 
+func letFunction(list:[Node])->Node {
+    guard list.count == 3 else { print("let statements must have at least 3 elements in the list. exiting."); exit(-1) }
+
+    switch list[1] {
+    case .Atom(let a):
+        guard variables[a] == nil else {
+            print("Variable '\(a)' already defined. Exiting")
+            exit(-1)
+        }
+        variables[a] = list[2]
+    case .List:
+        print("let's variable name must be an atom. exiting.")
+        exit(-1)
+    }
+
+    return .List([Node]())
+}
+
+let functionTable = [
+    "+": add,
+    "*": multiply,
+    "-":subtract,
+    "/":divide,
+    "write":write,
+    "if": condition,
+    "eq?":equal,
+    "let":letFunction]
+
 func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
         case .Atom(let atom):
-            let functionTable = ["+": add, "*": multiply, "-":subtract, "write":write, "/":divide, "if": condition, "eq?":equal]
+
             if let function = functionTable[atom] {
                 return function(list)
             }
@@ -164,7 +196,12 @@ func evaluateList(list:[Node])->Node {
 func evaluateNode(node:Node)->Node {
     switch node {
     case .List(let l): return evaluateList(l)
-    default: return node
+    case .Atom(let a):
+        if let variableValue = variables[a] {
+            return variableValue // TODO: variable names should maybe be limited to atoms with letters
+        } else {
+            return node
+        }
     }
 }
 
