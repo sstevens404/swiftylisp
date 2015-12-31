@@ -1,29 +1,29 @@
 (
 	(write Running tests...)
 
-	(if (eq? (* 2 5) 10.0) 
+	(if (= (* 2 5) 10.0) 
 		() 
 		(write "* 2 5" failed)
 	)
 
-	(if (eq? (- 1) 1.0) 
+	(if (= (- 1) 1.0) 
 		() 
 		(write "- 1" failed)
 	)
 
-	(if (eq? (/ 3 2) 1.5) 
+	(if (= (/ 3 2) 1.5) 
 		() 
 		(write "/ 3 2" failed)
 	)
 
-	(if (eq? (* 3.5 2) 7.0) 
+	(if (= (* 3.5 2) 7.0) 
 		() 
 		(write "* 3.5 2" failed)
 	)
 
 	(let pi 3.14159)
 
-	(if (eq? 3.14159 pi)
+	(if (= 3.14159 pi)
 		()
 		(write variable "pi" assignment failed)
 	) 

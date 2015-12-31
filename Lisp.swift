@@ -137,7 +137,7 @@ func condition(list:[Node])->Node {
 }
 
 func equal(list:[Node])->Node {
-    guard list.count == 3 else { print("eq? statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
     
     if evaluateNode(list[1]) == evaluateNode(list[2]) {
         return .Atom("true")
@@ -168,7 +168,6 @@ func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
         case .Atom(let atom):
-
             if let function = functionTable[atom] {
                 return function(list)
             }
@@ -202,7 +201,7 @@ let functionTable = [
     "/":divide,
     "write":write,
     "if": condition,
-    "eq?":equal,
+    "=":equal,
     "let":letFunction]
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
