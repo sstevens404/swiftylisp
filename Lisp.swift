@@ -164,16 +164,6 @@ func letFunction(list:[Node])->Node {
     return .List([Node]())
 }
 
-let functionTable = [
-    "+": add,
-    "*": multiply,
-    "-":subtract,
-    "/":divide,
-    "write":write,
-    "if": condition,
-    "eq?":equal,
-    "let":letFunction]
-
 func evaluateList(list:[Node])->Node {
     if let first = list.first {
         switch first {
@@ -204,6 +194,16 @@ func evaluateNode(node:Node)->Node {
         }
     }
 }
+
+let functionTable = [
+    "+": add,
+    "*": multiply,
+    "-":subtract,
+    "/":divide,
+    "write":write,
+    "if": condition,
+    "eq?":equal,
+    "let":letFunction]
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false
