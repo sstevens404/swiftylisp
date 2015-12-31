@@ -12,6 +12,8 @@ extension Int32 {
     }
 }
 
+
+
 func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
     let c = fgetc(fp)
     fseek(fp,-1,SEEK_CUR)
@@ -31,6 +33,18 @@ enum Node:CustomStringConvertible, Equatable {
     }
 }
 
+struct StackFrame {
+    var variables:[String:Node] = ["else":.Atom("true")]
+    
+    mutating func define(name:String, toBe value:Node) {
+        guard variables[name] == nil else {
+            print("Variable '\(name)' already defined. Exiting")
+            exit(-1)
+        }
+        variables[name] = value
+    }
+}
+
 func ==(a:Node, b:Node)->Bool {
     switch (a, b) {
     case (.Atom(let a), .Atom(let b)): return a == b
@@ -39,7 +53,7 @@ func ==(a:Node, b:Node)->Bool {
     }
 }
 
-var variables:[String:Node] = ["else":.Atom("true")]
+var stack = [StackFrame()]
 
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
     var atom = ""
@@ -147,16 +161,45 @@ func equal(list:[Node])->Node {
     }
 }
 
+func applyLambda(lambda: [Node], withParameters parameters: [Node])->Node {
+
+    guard lambda.count == 3 else {
+        print("lambda definitions must have 3 items: \n \(lambda)");
+        exit(-1)
+    }
+
+    var newFrame = StackFrame()
+
+    switch lambda[1] {
+    case .List(let l):
+        // bind variables
+        for (param,value) in zip(l,parameters.dropFirst()) {
+            switch param {
+            case .Atom(let a):
+                newFrame.define(a,toBe:(value))
+            default:
+                print("couldn't set param: \(param) to value: \(value)")
+                continue
+            }
+        }
+        default:
+            print("lambda doesn't have parameter list: \n \(lambda)");
+            exit(-1)
+    }
+
+    stack.append(newFrame)
+    let result = evaluateNode(lambda[2]);
+    stack.removeLast()
+
+    return result
+}
+
 func letFunction(list:[Node])->Node {
     guard list.count == 3 else { print("let statements must have at least 3 elements in the list. exiting."); exit(-1) }
 
     switch list[1] {
     case .Atom(let a):
-        guard variables[a] == nil else {
-            print("Variable '\(a)' already defined. Exiting")
-            exit(-1)
-        }
-        variables[a] = list[2]
+        stack[stack.count-1].define(a,toBe:evaluateNode(list[2]))
     case .List:
         print("let's variable name must be an atom. exiting.")
         exit(-1)
@@ -172,22 +215,38 @@ func evaluateList(list:[Node])->Node {
             if let function = functionTable[atom] {
                 return function(list)
             }
+            
+            if let lambda = stack.last?.variables[atom] {
+                switch lambda {
+                case .List(let l) where l.count > 0:
+                    switch l[0] {
+                    case .Atom(let a) where a == "lambda":
+//                        guard l.count == list.count else { break }
+                        return applyLambda(l, withParameters:  list)
+                    default: print("first item is not \"lambda\""); break
+                    }
+
+                default: break
+                }
+            }
+
         default: break;
         }
     }
     
+//    // TODO: this should probably be removed, but I don't know how we'd do normal unit tests without this
     for node in list {
         evaluateNode(node)
     }
     
-    return .List([Node]())
+    return .List(list)
 }
 
 func evaluateNode(node:Node)->Node {
     switch node {
     case .List(let l): return evaluateList(l)
     case .Atom(let a):
-        if let variableValue = variables[a] {
+        if let variableValue = stack.last?.variables[a] {
             return variableValue // TODO: variable names should maybe be limited to atoms with letters
         } else {
             return node
@@ -195,7 +254,7 @@ func evaluateNode(node:Node)->Node {
     }
 }
 
-let functionTable = [
+let functionTable:[String: ([Node])->(Node)] = [
     "+": add,
     "*": multiply,
     "-":subtract,
@@ -204,6 +263,8 @@ let functionTable = [
     "cond": condition,
     "=":equal,
     "let":letFunction]
+
+
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false

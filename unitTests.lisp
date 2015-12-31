@@ -40,5 +40,17 @@
 		else ()
 	) 
 
+	(let nine ((lambda (x) (* x x)) 3))
+	(write nine)
+	(cond 
+		(= 9.0 ((lambda (x) (* x x)) 3)) ()
+		else (write inline lamda failed))
+
+	(let cube (lambda (x) (* x x x))) 
+
+	(cond 
+		(= 125.0 (cube 5)) ()
+		else (write lamda definition failed))
+
 	(write Tests complete)
 )
