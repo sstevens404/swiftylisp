@@ -39,14 +39,14 @@ func ==(a:Node, b:Node)->Bool {
     }
 }
 
-var variables = [String:Node]()
+var variables:[String:Node] = ["else":.Atom("true")]
 
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
     var atom = ""
     
     while true {
         let c = fgetc(fp)
-        if (c.s == " " || c.s == ")" || c == EOF) {
+        if (c.s == " " || c.s == ")" || c == EOF || c.s == "\n" || c.s == "\r") {
             break
         }
         atom+=c.s
@@ -125,12 +125,13 @@ func divide(list:[Node])->Node {
 }
 
 func condition(list:[Node])->Node {
-    guard list.count > 2 else { print("if statements must have 3 or 4 elements in the list. exiting."); exit(-1) }
-    let condition = evaluateNode(list[1])
-    if condition != Node.List([Node]()) {
-        return evaluateNode(list[2])
-    } else if list.count > 3 {
-        return evaluateNode(list[3])
+    guard (list.count-1) % 2 == 0 else { print("cond statements must havean odd number of elements in the list. exiting.\n error in:\(list)"); exit(-1) }
+    
+    for i in 2.stride(to:list.count, by:2) {
+        let condition = evaluateNode(list[i-1])
+        if condition != Node.List([Node]()) {
+            return evaluateNode(list[i])
+        }
     }
     
     return .List([Node]())
@@ -200,7 +201,7 @@ let functionTable = [
     "-":subtract,
     "/":divide,
     "write":write,
-    "if": condition,
+    "cond": condition,
     "=":equal,
     "let":letFunction]
 
