@@ -60,5 +60,14 @@
 	(define car (lambda (x) (x (lambda (a b) (a)))))
 	(define cdr (lambda (x) (x (lambda (a b) (b)))))
 
+	(define index 
+		(lambda (items i) (
+			(cond 
+				(= i 0) (car items)
+				else (index (cdr items) (- i 1))
+			)
+		))
+	)
+
 	(write Tests complete)
 )

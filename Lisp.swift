@@ -188,7 +188,7 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node])->Node {
     }
 
     stack.append(newFrame)
-    let result = evaluateNode(lambda[2]);
+    let result = eval(2)(list: lambda);
     stack.removeLast()
 
     return result
@@ -256,12 +256,11 @@ func evaluateNode(node:Node)->Node {
     }
 }
 
-func eval(node:[Node])->Node {
+func eval(startingIndex:Int = 0)(list:[Node])->Node {
     var result = Node.List([Node]())
-    for n in node.dropFirst() {
-        result = evaluateNode(n)
+    for node in list.dropFirst(startingIndex) {
+        result = evaluateNode(node)
     }
-    
     return result
 }
 
@@ -274,7 +273,7 @@ let functionTable:[String: ([Node])->(Node)] = [
     "cond": condition,
     "=":equal,
     "define":define,
-    "eval":eval]
+    "eval":eval()]
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false
