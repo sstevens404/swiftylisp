@@ -209,6 +209,21 @@ func letFunction(list:[Node])->Node {
 }
 
 func evaluateList(list:[Node])->Node {
+    
+    func tryToApplyLambda(lambda: Node)->Node? {
+        switch lambda {
+        case .List(let l) where l.count > 0:
+            switch l[0] {
+            case .Atom(let a) where a == "lambda":
+                //                        guard l.count == list.count else { break }
+                return applyLambda(l, withParameters:  list)
+            default: return nil
+            }
+            
+        default: return nil
+        }
+    }
+    
     if let first = list.first {
         switch first {
         case .Atom(let atom):
@@ -216,21 +231,13 @@ func evaluateList(list:[Node])->Node {
                 return function(list)
             }
             
-            if let lambda = stack.last?.variables[atom] {
-                switch lambda {
-                case .List(let l) where l.count > 0:
-                    switch l[0] {
-                    case .Atom(let a) where a == "lambda":
-//                        guard l.count == list.count else { break }
-                        return applyLambda(l, withParameters:  list)
-                    default: print("first item is not \"lambda\""); break
-                    }
-
-                default: break
-                }
+            if let lambda = stack.last?.variables[atom], let result = tryToApplyLambda(lambda) {
+                return result
             }
-
-        default: break;
+        case .List:
+            if let result = tryToApplyLambda(first) {
+                return result
+            }
         }
     }
     
@@ -263,8 +270,6 @@ let functionTable:[String: ([Node])->(Node)] = [
     "cond": condition,
     "=":equal,
     "let":letFunction]
-
-
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false
