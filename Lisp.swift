@@ -241,11 +241,6 @@ func evaluateList(list:[Node])->Node {
         }
     }
     
-//    // TODO: this should probably be removed, but I don't know how we'd do normal unit tests without this
-    for node in list {
-        evaluateNode(node)
-    }
-    
     return .List(list)
 }
 
@@ -261,6 +256,15 @@ func evaluateNode(node:Node)->Node {
     }
 }
 
+func eval(node:[Node])->Node {
+    var result = Node.List([Node]())
+    for n in node.dropFirst() {
+        result = evaluateNode(n)
+    }
+    
+    return result
+}
+
 let functionTable:[String: ([Node])->(Node)] = [
     "+": add,
     "*": multiply,
@@ -269,7 +273,8 @@ let functionTable:[String: ([Node])->(Node)] = [
     "write":write,
     "cond": condition,
     "=":equal,
-    "let":letFunction]
+    "let":letFunction,
+    "eval":eval]
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false

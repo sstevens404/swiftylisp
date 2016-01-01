@@ -1,4 +1,4 @@
-(
+(eval
 	(write Running tests...)
 
 	(cond 
