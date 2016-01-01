@@ -21,7 +21,7 @@
 		else (write "* 3.5 2" failed)
 	)
 
-	(let pi 3.14159)
+	(define pi 3.14159)
 
 	(cond 
 		(= 3.14159 pi) (sucess)
@@ -44,13 +44,13 @@
 		(= 9.0 ((lambda (x) (* x x)) 3)) ()
 		else (write inline lamda failed))
 
-	(let nine ((lambda (x) (* x x)) 3))
+	(define nine ((lambda (x) (* x x)) 3))
 
 	(cond 
 		(= 9.0 nine) ()
-		else (write let assignment of inline lamda failed))
+		else (write define assignment of inline lamda failed))
 
-	(let cube (lambda (x) (* x x x))) 
+	(define cube (lambda (x) (* x x x))) 
 
 	(cond  
 		(= 125.0 (cube 5)) ()

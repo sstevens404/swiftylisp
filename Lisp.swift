@@ -194,14 +194,14 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node])->Node {
     return result
 }
 
-func letFunction(list:[Node])->Node {
-    guard list.count == 3 else { print("let statements must have at least 3 elements in the list. exiting."); exit(-1) }
+func define(list:[Node])->Node {
+    guard list.count == 3 else { print("define statements must have at least 3 elements in the list. exiting."); exit(-1) }
 
     switch list[1] {
     case .Atom(let a):
         stack[stack.count-1].define(a,toBe:evaluateNode(list[2]))
     case .List:
-        print("let's variable name must be an atom. exiting.")
+        print("define's variable name must be an atom. exiting.")
         exit(-1)
     }
 
@@ -273,7 +273,7 @@ let functionTable:[String: ([Node])->(Node)] = [
     "write":write,
     "cond": condition,
     "=":equal,
-    "let":letFunction,
+    "define":define,
     "eval":eval]
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
