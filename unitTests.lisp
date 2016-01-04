@@ -1,4 +1,4 @@
-(eval
+((lambda ()
 	(write Running tests...)
 
 	(cond 
@@ -61,13 +61,52 @@
 	(define cdr (lambda (x) (x (lambda (a b) (b)))))
 
 	(define index 
-		(lambda (items i) (
+		(lambda (items i)
 			(cond 
 				(= i 0) (car items)
 				else (index (cdr items) (- i 1))
 			)
-		))
+		)
+	)
+
+	(define map 
+		(lambda (function items)
+			(cond 
+				(null? items) 
+					null
+				else 
+					(cons (function (car items)) (map function (cdr items)))
+			)
+		)
+	)
+
+	(define filter 
+		(lambda (predicate items)
+			(cond 
+				(null? items) 
+					null
+				else 
+					(cond 
+						(predicate (car items)) 
+							(cons (car items) (filter predicate (cdr items)))
+						else 
+							(filter predicate (cdr items))
+					)
+			)
+		)
+	)
+
+	(define thingy 
+		(lambda (input)
+			(define square (lambda (a) (* input a)))
+			(define double (lambda (a) (* a a)))
+
+			(cond 
+				(= i 0) (car items)
+				else (index (cdr items) (- i 1))
+			)
+		)
 	)
 
 	(write Tests complete)
-)
+))
