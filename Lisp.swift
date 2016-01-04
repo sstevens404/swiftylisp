@@ -20,6 +20,7 @@ func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
 
 enum Node:CustomStringConvertible, Equatable {
     case Atom(String)
+    case Number(Double)
     case List([Node])
     case Function(([Node],Frame)->(Node))
     
@@ -28,6 +29,7 @@ enum Node:CustomStringConvertible, Equatable {
         case .Atom(let a): return a
         case .List(let l):
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
+        case .Number(let l): return "\(l)"
         default: return ""
         }
     }
@@ -58,13 +60,14 @@ func ==(a:Node, b:Node)->Bool {
     switch (a, b) {
     case (.Atom(let a), .Atom(let b)): return a == b
     case (.List(let a), .List(let b)): return a == b
+    case (.Number(let a), .Number(let b)): return a == b
     default: return false;
     }
 }
 
 var globalEnvironment = Frame(parent:nil)
 
-func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
+func parseAtom(fp:UnsafeMutablePointer<FILE>)->Node {
     var atom = ""
     
     while true {
@@ -75,7 +78,12 @@ func parseAtom(fp:UnsafeMutablePointer<FILE>)->String {
         atom+=c.s
     }
     fseek(fp,-1,SEEK_CUR)
-    return atom
+    
+    if let number = Double(atom) {
+        return .Number(number)
+    }
+    
+    return .Atom(atom)
 }
 
 func eatWhitespace(fp:UnsafeMutablePointer<FILE>) {
@@ -113,20 +121,28 @@ func parseNode(fp:UnsafeMutablePointer<FILE>)->Node {
     if fpeek(fp).s == "(" {
         return .List(parseList(fp))
     } else {
-        return .Atom(parseAtom(fp))
+        return parseAtom(fp)
     }
 }
 
 
+func evaluateToNumber(node:Node, _ environment:Frame) -> Double{
+    let number = evaluateNode(node, environment:environment)
+    switch number {
+    case .Number(let n): return n
+    default: print("cannont multiply non-number type: \(node). Exiting. "); exit(-1)
+    }
+}
+
 func multiply(list:[Node], environment:Frame)->Node {
-    let result = list.dropFirst().reduce(1) { product,item in product * (Double(String(evaluateNode(item, environment:environment))) ?? 0)}
-    return .Atom(String(result))
+    let result = list.dropFirst().reduce(1) { product,item in product * evaluateToNumber(item, environment)}
+    return .Number(result)
 }
 
 func subtract(list:[Node], environment:Frame)->Node {
-    let firstValue = Double(String(evaluateNode(list[1],environment:environment))) ?? 0
-    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference - (Double(String(evaluateNode(item, environment:environment))) ?? 0)}
-    return .Atom(String(result))
+    let firstValue = evaluateToNumber(list[1],environment)
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference - evaluateToNumber(item, environment)}
+    return .Number(result)
 }
 
 func write(list:[Node], environment:Frame)->Node {
@@ -138,9 +154,9 @@ func write(list:[Node], environment:Frame)->Node {
 }
 
 func divide(list:[Node], environment:Frame)->Node {
-    let firstValue = Double(String(evaluateNode(list[1],environment:environment))) ?? 0
-    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference / (Double(String(evaluateNode(item,environment:environment))) ?? 0)}
-    return .Atom(String(result))
+    let firstValue = evaluateToNumber(list[1],environment)
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference / evaluateToNumber(item,environment)}
+    return .Number(result)
 }
 
 func condition(list:[Node],environment:Frame)->Node {
@@ -249,15 +265,15 @@ func evaluateList(list:[Node],environment: Frame)->Node {
 
 func evaluateNode(node:Node, environment: Frame)->Node {
     switch node {
-    case .List(let l): return evaluateList(l, environment:environment)
+    case .List(let l):
+        return evaluateList(l, environment:environment)
     case .Atom(let a):
         if let variableValue = environment.valueOf(a) {
             return variableValue // TODO: variable names should maybe be limited to atoms with letters
-        } else {
-            return node
         }
-    default: return .List([Node]())
+    default: break
     }
+    return node
 }
 
 func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {

@@ -1,9 +1,10 @@
 ((lambda ()
 	(write Running tests...)
 
+	(define multResult (* 2 5))
 	(cond 
-		(= (* 2 5) 10.0) (sucess) 
-		else (write "* 2 5" failed)
+		(= multResult 10.0) (sucess) 
+		else (write "* 2 5" failed multResult)
 	)
 
 	(cond 
