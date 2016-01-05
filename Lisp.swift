@@ -54,6 +54,10 @@ class Frame {
     func valueOf(name:String)->Node? {
         return variables[name] ?? parent?.valueOf(name)
     }
+    
+    func defineFunc(name:String, function:([Node],Frame)->Node) {
+        define(name, toBe:.Function(function))
+    }
 }
 
 func ==(a:Node, b:Node)->Bool {
@@ -130,55 +134,7 @@ func evaluateToNumber(node:Node, _ environment:Frame) -> Double{
     let number = evaluateNode(node, environment:environment)
     switch number {
     case .Number(let n): return n
-    default: print("cannont multiply non-number type: \(node). Exiting. "); exit(-1)
-    }
-}
-
-func multiply(list:[Node], environment:Frame)->Node {
-    let result = list.dropFirst().reduce(1) { product,item in product * evaluateToNumber(item, environment)}
-    return .Number(result)
-}
-
-func subtract(list:[Node], environment:Frame)->Node {
-    let firstValue = evaluateToNumber(list[1],environment)
-    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference - evaluateToNumber(item, environment)}
-    return .Number(result)
-}
-
-func write(list:[Node], environment:Frame)->Node {
-    for item in list.dropFirst() {
-        print(evaluateNode(item,environment:environment), terminator:" ")
-    }
-    print(""); // newline
-    return .List([Node]())
-}
-
-func divide(list:[Node], environment:Frame)->Node {
-    let firstValue = evaluateToNumber(list[1],environment)
-    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference / evaluateToNumber(item,environment)}
-    return .Number(result)
-}
-
-func condition(list:[Node],environment:Frame)->Node {
-    guard (list.count-1) % 2 == 0 else { print("cond statements must havean odd number of elements in the list. exiting.\n error in:\(list)"); exit(-1) }
-    
-    for i in 2.stride(to:list.count, by:2) {
-        let condition = evaluateNode(list[i-1],environment:environment)
-        if condition != Node.List([Node]()) {
-            return evaluateNode(list[i],environment:environment)
-        }
-    }
-    
-    return .List([Node]())
-}
-
-func equal(list:[Node], environment: Frame)->Node {
-    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
-    
-    if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
-        return .Atom("true")
-    } else {
-        return .List([Node]())
+    default: print("unexpected non-number type: \"\(node)\". Exiting. "); exit(-1)
     }
 }
 
@@ -211,21 +167,6 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node], environment:
     return eval(2)(list: lambda, environment:newFrame)
 }
 
-func define(list:[Node], environment:Frame)->Node {
-    guard list.count == 3 else { print("define statements must have at least 3 elements in the list. exiting."); exit(-1) }
-
-    switch list[1] {
-    case .Atom(let a):
-        environment.define(a,toBe:evaluateNode(list[2], environment:environment))
-    case .List:
-        print("define's variable name must be an atom. exiting.")
-        exit(-1)
-    default: break
-    }
-
-    return .List([Node]())
-}
-
 func evaluateList(list:[Node],environment: Frame)->Node {
     
     func tryToApplyLambda(lambda: Node)->Node? {
@@ -237,6 +178,8 @@ func evaluateList(list:[Node],environment: Frame)->Node {
                 return applyLambda(l, withParameters:  list, environment:environment)
             default: return nil
             }
+        case .Function(let function):
+            return function(list,environment)
             
         default: return nil
         }
@@ -245,10 +188,6 @@ func evaluateList(list:[Node],environment: Frame)->Node {
     if let first = list.first {
         switch first {
         case .Atom(let atom):
-            if let function = functionTable[atom] {
-                return function(list,environment)
-            }
-            
             if let lambda = environment.valueOf(atom), let result = tryToApplyLambda(lambda) {
                 return result
             }
@@ -284,21 +223,72 @@ func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {
     return result
 }
 
-let functionTable:[String: ([Node],Frame)->(Node)] = [
-    "*": multiply,
-    "-":subtract,
-    "/":divide,
-    "write":write,
-    "cond": condition,
-    "=":equal,
-    "define":define]
-
-func fuckSwiftBlockSyntax(list:[Node], environment:Frame) -> Node {
-    let result = list.dropFirst().reduce(0) { sum,item in sum + (Double(String(evaluateNode(item,environment:environment))) ?? 0)}
-    return Node.Atom(String(result))
+globalEnvironment.defineFunc("define") { list, environment in
+    guard list.count == 3 else { print("define statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    
+    switch list[1] {
+    case .Atom(let a):
+        environment.define(a,toBe:evaluateNode(list[2], environment:environment))
+    case .List:
+        print("define's variable name must be an atom. exiting.")
+        exit(-1)
+    default: break
+    }
+    
+    return .List([Node]())
 }
 
-globalEnvironment.define("+", toBe:.Function(fuckSwiftBlockSyntax))
+globalEnvironment.defineFunc("+") { list, environment in
+    return .Number(list.dropFirst().reduce(0) { sum,item in sum + evaluateToNumber(item,environment)})
+}
+
+globalEnvironment.defineFunc("*") { list, environment in
+    return .Number(list.dropFirst().reduce(1) { product,item in product * evaluateToNumber(item, environment)})
+}
+
+globalEnvironment.defineFunc("-") { list, environment in
+    let firstValue = evaluateToNumber(list[1],environment)
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference - evaluateToNumber(item, environment)}
+    return .Number(result)
+}
+
+globalEnvironment.defineFunc("/") { list, environment in
+    let firstValue = evaluateToNumber(list[1],environment)
+    let result = list.dropFirst(2).reduce(firstValue) { difference,item in difference / evaluateToNumber(item,environment)}
+    return .Number(result)
+}
+
+globalEnvironment.defineFunc("write") { list, environment in
+    for item in list.dropFirst() {
+        print(evaluateNode(item,environment:environment), terminator:" ")
+    }
+    print(""); // newline
+    return .List([Node]())
+
+}
+
+globalEnvironment.defineFunc("cond") { list, environment in
+    guard (list.count-1) % 2 == 0 else { print("cond statements must havean odd number of elements in the list. exiting.\n error in:\(list)"); exit(-1) }
+    
+    for i in 2.stride(to:list.count, by:2) {
+        let condition = evaluateNode(list[i-1],environment:environment)
+        if condition != Node.List([Node]()) {
+            return evaluateNode(list[i],environment:environment)
+        }
+    }
+    
+    return .List([Node]())
+}
+
+globalEnvironment.defineFunc("=") { list, environment in
+    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    
+    if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
+        return .Atom("true")
+    } else {
+        return .List([Node]())
+    }
+}
 
 guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
 var printDebug = false
