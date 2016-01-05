@@ -1,103 +1,63 @@
 ((lambda ()
 	(write "Running tests...")
 
-	(define multResult (* 2 5))
-	(cond 
-		((= multResult 10) "sucess")
-		(else (write "'* 2 5' failed multResult"))
-	)
+	(define not (lambda (x) (cond ((= x "true") 0) (else "true"))))
+	(define test (lambda (input expected text)
+		(cond 
+			((not (= input expected)) 
+				(write  "Failed:" text "." input "!=" expected)) 
+			(else 
+				(write "Passed:" text)))))
 
-	(cond 
-		((= (- 1) 1) "sucess")
-		(else (write "'- 1' failed"))
-	)
-
-	(cond 
-		((= (/ 3 -2) -1.5) "sucess")
-		(else (write "'/ 3 2' failed"))
-	)
-
-	(cond 
-		((= (* +3.5 2) 7) "sucess") 
-		(else (write "'* 3.5 2' failed"))
-	)
+	(test (- 5 3) 2 "subtraction")
+	(test (- 1) 1 "single number subtration")
+	(test (/ 3 -2) -1.5 "divison")
+	(test (* +3.5 2) 7 "multiplication")
 
 	(define pi 3.14159)
+	(test pi 3.14159 "varable assignment")
 
-	(cond 
-		((= 3.14159 pi) "sucess")
-		(else (write "variable 'pi' assignment failed"))
-	) 
-
-	(cond 
-		((= 2 5) (write "cond test failed"))
-		((= 5 5) "sucess")
-		(else (write "cond test failed"))
-	) 
-
-	(cond 
-		((= 2 5) (write "cond test 2 failed"))
-		((= 5 7) (write "cond test 2 failed"))
-		(else "sucess")
-	) 
-
-	(cond 
-		((= 9.0 ((lambda (x) (* x x)) 3)) "sucess")
-		(else (write "inline lamda failed")))
+	(test ((lambda (x) (* x x)) 3) 9 "inline lambda")
 
 	(define nine ((lambda (x) (* x x)) 3))
-
-	(cond 
-		((= 9.0 nine) "sucess")
-		(else (write "define assignment of inline lamda failed")))
+	(test nine 9.0 "define inline lambda")
 
 	(define cube (lambda (x) (* x x x))) 
-
-	(cond  
-		((= 125.0 (cube 5)) "sucess")
-		(else (write "lamda definition failed")))
+	(test 125 (cube 5) "call defined lambda")
 
 	(define cons (lambda (x y) (lambda (m) (m x y))))
 	(define car (lambda (x) (x (lambda (a b) (a)))))
 	(define cdr (lambda (x) (x (lambda (a b) (b)))))
 
-	(define count-down 
+	(define factorial 
 		(lambda (x) 
-			(write x)
 			(cond 
-				((= x 0) 0)
-				(else (count-down (- x 1)))
-			)
-		)
-	)
+				((= x 0) 
+					1)
+				(else 
+					(* x (factorial (- x 1)))))))
 
-	(count-down 10)
+	(cond
+		((= 120 (factorial 5)) "sucess")
+		(else (write "factorial failed")))
 
 	(define index 
 		(lambda (items i)
 			(cond 
 				((= i 0) 
-					(car items)
-				)
+					(car items))
 				(else 
-					(index (cdr items) (- i 1))
-				)
-			)
-		)
-	)
+					(index (cdr items) (- i 1))))))
 
 	(define map 
 		(lambda (function items)
 			(cond 
 				((null? items) 
-					null
-				)
+					null)
 				(else 
-					(cons (function (car items)) (map function (cdr items)))
-				)
-			)
-		)
-	)
+					(cons 
+						(function (car items)) 
+						(map function (cdr items)))))))
 
 	(define filter 
 		(lambda (predicate items)

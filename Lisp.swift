@@ -70,6 +70,8 @@ func ==(a:Node, b:Node)->Bool {
     case (.List(let a), .List(let b)): return a == b
     case (.Number(let a), .Number(let b)): return a == b
     case (.Str(let a), .Str(let b)): return a == b
+    case (.Str(let a), .Atom(let b)): return a == b
+    case (.Atom(let a), .Str(let b)): return a == b
     default: return false;
     }
 }
@@ -306,7 +308,7 @@ globalEnvironment.defineFunc("cond") { list, environment in
         switch conditionExpression {
         case .List(let l):
             guard l.count >= 2 else {  print("cond expressions must be a list exiting.\n error in:\(list)"); exit(-1) }
-            if evaluateNode(l[0],environment:environment) != .nilList {
+            if evaluateNode(l[0],environment:environment) == .Str("true") {
                 return eval(1)(list: l, environment:environment)
             }
         default:
@@ -322,7 +324,7 @@ globalEnvironment.defineFunc("=") { list, environment in
     guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
     
     if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
-        return .Atom("true")
+        return .Str("true")
     } else {
         return .nilList
     }
