@@ -5,7 +5,7 @@
 	(define test (lambda (input expected text)
 		(cond 
 			((not (= input expected)) 
-				(write  "Failed:" text "." input "!=" expected)) 
+				(write  " ! Failed:" text "." input "!=" expected)) 
 			(else 
 				(write "Passed:" text)))))
 
@@ -13,6 +13,8 @@
 	(test (- 1) 1 "single number subtration")
 	(test (/ 3 -2) -1.5 "divison")
 	(test (* +3.5 2) 7 "multiplication")
+	(test (< 4 93.45) "true" "less than 1")
+	(test (not (< 5 20)) "true" "less than 2")
 
 	(define pi 3.14159)
 	(test pi 3.14159 "varable assignment")
@@ -50,8 +52,14 @@
 	(define cons (lambda (x y) (lambda (m) (m x y))))
 	(define car (lambda (x) (x (lambda (a b) (a)))))
 	(define cdr (lambda (x) (x (lambda (a b) (b)))))
-	
-	(define index 
+
+
+
+	(define alpha (cons "a" "b"))
+	(write alpha)
+	(write "(index alpha 0)")
+
+		(define index 
 		(lambda (items i)
 			(cond 
 				((= i 0) 

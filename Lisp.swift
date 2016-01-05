@@ -301,9 +301,19 @@ globalEnvironment.defineFunc("cond") { list, environment in
 }
 
 globalEnvironment.defineFunc("=") { list, environment in
-    guard list.count == 3 else { print("= statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    guard list.count == 3 else { print("= statements must have 2 parameters. exiting."); exit(-1) }
     
     if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
+        return .Str("true")
+    } else {
+        return .nilList
+    }
+}
+
+globalEnvironment.defineFunc("<") { list, environment in
+    guard list.count == 3 else { print("< statements must have two parameters. exiting."); exit(-1) }
+    
+    if evaluateToNumber(list[1],environment) < evaluateToNumber(list[2],environment) {
         return .Str("true")
     } else {
         return .nilList
