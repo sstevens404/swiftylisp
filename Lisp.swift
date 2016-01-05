@@ -198,38 +198,42 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node], environment:
 }
 
 func evaluateList(list:[Node],environment: Frame)->Node {
+    guard list.count > 0 else { print("calling empty list.\nExiting."); exit(-1) }
     
-    func tryToApplyLambda(lambda: Node)->Node? {
-        switch lambda {
-        case .List(let l) where l.count > 0:
-            switch l[0] {
-            case .Atom(let a) where a == "lambda":
-                //                        guard l.count == list.count else { break }
-                return applyLambda(l, withParameters:  list, environment:environment)
-            default: return nil
-            }
-        case .Function(let function):
-            return function(list,environment)
-            
-        default: return nil
+    let lambda:Node
+    
+    switch list[0] {
+    case .Atom(let atom):
+        guard let value = environment.valueOf(atom) else {
+//            print("Undefined function \"\(atom)\".\nExiting.");
+            return .List(list)
+//            exit(-1)
         }
+        lambda = value
+    case .List:
+        lambda = list[0]
+    default:
+        print("Unexpected list item at start of list:\n\(list[0])\n\nExiting.")
+        exit(-1)
     }
     
-    if let first = list.first {
-        switch first {
-        case .Atom(let atom):
-            if let lambda = environment.valueOf(atom), let result = tryToApplyLambda(lambda) {
-                return result
-            }
-        case .List:
-            if let result = tryToApplyLambda(first) {
-                return result
-            }
-        default:break
+    switch lambda {
+    case .List(let l) where l.count > 0:
+        switch l[0] {
+        case .Atom(let a) where a == "lambda":
+            //                        guard l.count == list.count else { break }
+            return applyLambda(l, withParameters:  list, environment:environment)
+        default:
+            print("trying to call function that doesn't start with lambda:\n\(list)\n\nExiting.")
+            exit(-1)
         }
+    case .Function(let function):
+        return function(list,environment)
+        
+    default:
+        print("Failed to call non-function:\n\(list)\n\nExiting.")
+        exit(-1)
     }
-    
-    return .List(list)
 }
 
 func evaluateNode(node:Node, environment: Frame)->Node {
