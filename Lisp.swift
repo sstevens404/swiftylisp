@@ -26,7 +26,7 @@ enum Node:CustomStringConvertible, Equatable {
     case Number(Double)
     case List([Node])
     case Function(([Node],Frame)->(Node))
-    case Lambda([Node],[Node])
+    case Lambda([Node],[Node], Frame)
     
     var description: String {
         switch self {
@@ -174,8 +174,8 @@ func evaluateList(list:[Node],environment: Frame)->Node {
     guard list.count > 0 else { print("calling empty list.\nExiting."); exit(-1) }
     
     switch evaluateNode(list[0], environment:environment) {
-    case .Lambda(let params, let body):
-        let newFrame = Frame(parent:environment)
+    case .Lambda(let params, let body, let lambdaEnvironment):
+        let newFrame = Frame(parent:lambdaEnvironment)
         for (param,value) in zip(params,list.dropFirst()) {
             switch param {
             case .Atom(let a):
@@ -278,7 +278,7 @@ globalEnvironment.defineFunc("lambda") { list, environment in
     
     let lambdaBody = Array(list[2..<list.count])
     
-    return .Lambda(parameters, lambdaBody)
+    return .Lambda(parameters, lambdaBody, environment)
 }
 
 globalEnvironment.defineFunc("cond") { list, environment in

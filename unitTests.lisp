@@ -25,10 +25,6 @@
 	(define cube (lambda (x) (* x x x))) 
 	(test 125 (cube 5) "call defined lambda")
 
-	(define cons (lambda (x y) (lambda (m) (m x y))))
-	(define car (lambda (x) (x (lambda (a b) (a)))))
-	(define cdr (lambda (x) (x (lambda (a b) (b)))))
-
 	(define factorial 
 		(lambda (x) 
 			(cond 
@@ -37,7 +33,18 @@
 				(else 
 					(* x (factorial (- x 1)))))))
 
-	(test 120 (factorial 5) "factorial")
+	(test 120 (factorial 5) "Recursion")
+
+	(define make-inc (lambda (incBy) (lambda (num) (+ incBy num))))
+	(define five (make-inc 5))
+	(define seven (make-inc 7))
+	(test 8 (five 3) "Closure")
+	(test 14 (five 9) "Closure 2")
+	(test 10 (seven 3) "Closure 3")
+
+	(define cons (lambda (x y) (lambda (m) (m x y))))
+	(define car (lambda (x) (x (lambda (a b) (a)))))
+	(define cdr (lambda (x) (x (lambda (a b) (b)))))
 	
 	(define index 
 		(lambda (items i)
