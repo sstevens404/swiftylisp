@@ -33,6 +33,8 @@ enum Node:CustomStringConvertible, Equatable {
         default: return ""
         }
     }
+    
+    static let nilList = Node.List([Node]())
 }
 
 class Frame {
@@ -68,8 +70,6 @@ func ==(a:Node, b:Node)->Bool {
     default: return false;
     }
 }
-
-var globalEnvironment = Frame(parent:nil)
 
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->Node {
     var atom = ""
@@ -223,6 +223,7 @@ func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {
     return result
 }
 
+var globalEnvironment = Frame(parent:nil)
 globalEnvironment.defineFunc("define") { list, environment in
     guard list.count == 3 else { print("define statements must have at least 3 elements in the list. exiting."); exit(-1) }
     
@@ -268,13 +269,23 @@ globalEnvironment.defineFunc("write") { list, environment in
 }
 
 globalEnvironment.defineFunc("cond") { list, environment in
-    guard (list.count-1) % 2 == 0 else { print("cond statements must havean odd number of elements in the list. exiting.\n error in:\(list)"); exit(-1) }
+    guard list.count > 1 else { print("cond statements must have at least one condition. exiting.\n error in:\(list)"); exit(-1) }
     
-    for i in 2.stride(to:list.count, by:2) {
-        let condition = evaluateNode(list[i-1],environment:environment)
-        if condition != Node.List([Node]()) {
-            return evaluateNode(list[i],environment:environment)
+    for conditionExpression in list.dropFirst() {
+        
+        switch conditionExpression {
+        case .List(let l):
+            guard l.count >= 2 else {  print("cond expressions must be a list exiting.\n error in:\(list)"); exit(-1) }
+            let condition = evaluateNode(l[0],environment:environment)
+            if condition != Node.List([Node]()) {
+                return eval(1)(list: l, environment:environment)
+            }
+        default:
+            print("cond expressions must be a list exiting.\n error in:\(list)")
+            exit(-1)
         }
+        
+        
     }
     
     return .List([Node]())
