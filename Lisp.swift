@@ -236,6 +236,9 @@ func evaluateNode(node:Node, environment: Frame)->Node {
     case .Atom(let a):
         if let variableValue = environment.valueOf(a) {
             return variableValue // TODO: variable names should maybe be limited to atoms with letters
+        } else {
+            print("Use of undefined variable \"\(a)\". exiting.")
+            exit(-1)
         }
     default: break
     }
