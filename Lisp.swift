@@ -20,6 +20,7 @@ func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
 
 enum Node:CustomStringConvertible, Equatable {
     case Atom(String)
+    case Str(String)
     case Number(Double)
     case List([Node])
     case Function(([Node],Frame)->(Node))
@@ -30,6 +31,7 @@ enum Node:CustomStringConvertible, Equatable {
         case .List(let l):
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
         case .Number(let l): return "\(l)"
+        case .Str(let s): return s
         default: return ""
         }
     }
@@ -67,6 +69,7 @@ func ==(a:Node, b:Node)->Bool {
     case (.Atom(let a), .Atom(let b)): return a == b
     case (.List(let a), .List(let b)): return a == b
     case (.Number(let a), .Number(let b)): return a == b
+    case (.Str(let a), .Str(let b)): return a == b
     default: return false;
     }
 }
@@ -74,13 +77,37 @@ func ==(a:Node, b:Node)->Bool {
 func parseAtom(fp:UnsafeMutablePointer<FILE>)->Node {
     var atom = ""
     
+    let makeString:Bool
+    if fgetc(fp).s == "\"" {
+        makeString = true
+    } else {
+        makeString = false
+        fseek(fp,-1,SEEK_CUR)
+    }
     while true {
         let c = fgetc(fp)
-        if (c.s == " " || c.s == ")" || c == EOF || c.s == "\n" || c.s == "\r") {
+        
+        if c == EOF {
             break
         }
+        
+        if makeString {
+            if c.s == "\"" {
+                break
+            }
+        } else {
+            if (c.s == " " || c.s == ")" || c.s == "\n" || c.s == "\r") {
+                break
+            }
+        }
+        
         atom+=c.s
     }
+    
+    if makeString {
+        return .Str(atom)
+    }
+    
     fseek(fp,-1,SEEK_CUR)
     
     if let number = Double(atom) {

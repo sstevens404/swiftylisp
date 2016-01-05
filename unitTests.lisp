@@ -1,5 +1,5 @@
 ((lambda ()
-	(write Running tests...)
+	(write "Running tests...")
 
 	(define multResult (* 2 5))
 	(cond 
