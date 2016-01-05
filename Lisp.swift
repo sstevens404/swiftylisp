@@ -216,7 +216,7 @@ func evaluateNode(node:Node, environment: Frame)->Node {
 }
 
 func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {
-    var result = Node.List([Node]())
+    var result = Node.nilList
     for node in list.dropFirst(startingIndex) {
         result = evaluateNode(node, environment:environment)
     }
@@ -236,7 +236,7 @@ globalEnvironment.defineFunc("define") { list, environment in
     default: break
     }
     
-    return .List([Node]())
+    return .nilList
 }
 
 globalEnvironment.defineFunc("+") { list, environment in
@@ -264,7 +264,7 @@ globalEnvironment.defineFunc("write") { list, environment in
         print(evaluateNode(item,environment:environment), terminator:" ")
     }
     print(""); // newline
-    return .List([Node]())
+    return .nilList
 
 }
 
@@ -277,7 +277,7 @@ globalEnvironment.defineFunc("cond") { list, environment in
         case .List(let l):
             guard l.count >= 2 else {  print("cond expressions must be a list exiting.\n error in:\(list)"); exit(-1) }
             let condition = evaluateNode(l[0],environment:environment)
-            if condition != Node.List([Node]()) {
+            if condition != .nilList {
                 return eval(1)(list: l, environment:environment)
             }
         default:
@@ -288,7 +288,7 @@ globalEnvironment.defineFunc("cond") { list, environment in
         
     }
     
-    return .List([Node]())
+    return .nilList
 }
 
 globalEnvironment.defineFunc("=") { list, environment in
@@ -297,7 +297,7 @@ globalEnvironment.defineFunc("=") { list, environment in
     if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
         return .Atom("true")
     } else {
-        return .List([Node]())
+        return .nilList
     }
 }
 
