@@ -37,10 +37,8 @@
 				(else 
 					(* x (factorial (- x 1)))))))
 
-	(cond
-		((= 120 (factorial 5)) "sucess")
-		(else (write "factorial failed")))
-
+	(test 120 (factorial 5) "factorial")
+	
 	(define index 
 		(lambda (items i)
 			(cond 
