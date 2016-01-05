@@ -17,6 +17,11 @@
 	(define pi 3.14159)
 	(test pi 3.14159 "varable assignment")
 
+	(define bloop (lambda (x) 
+		((cond ((= x 7) +) (else *)) x 2)))
+	(test (bloop 10) 20 "dynamic function name 1")
+	(test (bloop 7) 9 "dynamic function name 2")
+
 	(test ((lambda (x) (* x x)) 3) 9 "inline lambda")
 
 	(define nine ((lambda (x) (* x x)) 3))
