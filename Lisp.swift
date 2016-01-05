@@ -35,6 +35,7 @@ enum Node:CustomStringConvertible, Equatable {
             return "(" + l.map { $0.description }.joinWithSeparator(" ") + ")"
         case .Number(let l): return "\(l)"
         case .Str(let s): return s
+        case .Lambda(_, let b, _): return b.description
         default: return ""
         }
     }
@@ -176,6 +177,13 @@ func evaluateList(list:[Node],environment: Frame)->Node {
     switch evaluateNode(list[0], environment:environment) {
     case .Lambda(let params, let body, let lambdaEnvironment):
         let newFrame = Frame(parent:lambdaEnvironment)
+        
+//        #warning todo
+//        guard params.count == list.count - 1 else {
+//            print("calling \(params.count) parameter lambda with \(list.count-1) parameter.\nExiting.")
+//            exit(-1)
+//        }
+        
         for (param,value) in zip(params,list.dropFirst()) {
             switch param {
             case .Atom(let a):

@@ -1,9 +1,12 @@
 ((lambda ()
 	(write "Running tests...")
 
-	(define not (lambda (x) (cond ((= x "true") 0) (else "true"))))
-	(define and (lambda (x y) (cond ((not x) 0) ((not y) 0) (else "true"))))
-	(define or (lambda (x y) (cond (x "true") (y "true") (else 0))))
+	(define null (define dfsjhkfsdjkhfdsjhk 1))
+	(define null? (lambda (x) (= x null)))
+
+	(define not (lambda (x) (cond ((= x "true") null) (else "true"))))
+	(define and (lambda (x y) (cond ((not x) null) ((not y) null) (else "true"))))
+	(define or (lambda (x y) (cond (x "true") (y "true") (else null))))
 	(define test (lambda (input expected text)
 		(cond 
 			((not (= input expected)) 
@@ -85,14 +88,24 @@
 			(else 
 				(index (cdr items) (- i 1))))))
 
+	
 	(define map (lambda (function items)
 		(cond 
-			((null? items) 
-				null)
+			((null? items) null)
 			(else 
 				(cons 
 					(function (car items)) 
 					(map function (cdr items)))))))
+
+	(define each (lambda (function items) 
+			(cond ((null? items) null)
+				(else (function (car items)) (each function (cdr items)))
+		)))
+	(define write-list (lambda (items) (each (lambda (x) (write x)) items)))
+
+	(define numbers (cons 1 (cons 2 (cons 3 (cons 4 null)))))
+	(write-list numbers)
+	(write-list (map (lambda (x) (* 2 x)) numbers))
 
 	(define filter (lambda (predicate items)
 		(cond 
