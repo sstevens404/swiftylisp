@@ -24,6 +24,7 @@ enum Node:CustomStringConvertible, Equatable {
     case Number(Double)
     case List([Node])
     case Function(([Node],Frame)->(Node))
+    case Lambda([Node],[Node])
     
     var description: String {
         switch self {
@@ -167,19 +168,13 @@ func evaluateToNumber(node:Node, _ environment:Frame) -> Double{
     }
 }
 
-func applyLambda(lambda: [Node], withParameters parameters: [Node], environment: Frame)->Node {
-
-    guard lambda.count >= 3 else {
-        print("lambda definitions must have at least 3 items: \n \(lambda)");
-        exit(-1)
-    }
-
-    let newFrame = Frame(parent:environment)
-
-    switch lambda[1] {
-    case .List(let l):
-        // bind variables
-        for (param,value) in zip(l,parameters.dropFirst()) {
+func evaluateList(list:[Node],environment: Frame)->Node {
+    guard list.count > 0 else { print("calling empty list.\nExiting."); exit(-1) }
+    
+    switch evaluateNode(list[0], environment:environment) {
+    case .Lambda(let params, let body):
+        let newFrame = Frame(parent:environment)
+        for (param,value) in zip(params,list.dropFirst()) {
             switch param {
             case .Atom(let a):
                 let parameterValue = evaluateNode(value, environment:environment)
@@ -189,47 +184,10 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node], environment:
                 continue
             }
         }
-        default:
-            print("lambda doesn't have parameter list: \n \(lambda)");
-            exit(-1)
-    }
-
-    return eval(2)(list: lambda, environment:newFrame)
-}
-
-func evaluateList(list:[Node],environment: Frame)->Node {
-    guard list.count > 0 else { print("calling empty list.\nExiting."); exit(-1) }
-    
-    let lambda:Node
-    
-    switch list[0] {
-    case .Atom(let atom):
-        guard let value = environment.valueOf(atom) else {
-//            print("Undefined function \"\(atom)\".\nExiting.");
-            return .List(list)
-//            exit(-1)
-        }
-        lambda = value
-    case .List:
-        lambda = list[0]
-    default:
-        print("Unexpected list item at start of list:\n\(list[0])\n\nExiting.")
-        exit(-1)
-    }
-    
-    switch lambda {
-    case .List(let l) where l.count > 0:
-        switch l[0] {
-        case .Atom(let a) where a == "lambda":
-            //                        guard l.count == list.count else { break }
-            return applyLambda(l, withParameters:  list, environment:environment)
-        default:
-            print("trying to call function that doesn't start with lambda:\n\(list)\n\nExiting.")
-            exit(-1)
-        }
+        
+        return eval(0)(list: body, environment:newFrame)
     case .Function(let function):
         return function(list,environment)
-        
     default:
         print("Failed to call non-function:\n\(list)\n\nExiting.")
         exit(-1)
@@ -247,9 +205,8 @@ func evaluateNode(node:Node, environment: Frame)->Node {
             print("Use of undefined variable \"\(a)\". exiting.")
             exit(-1)
         }
-    default: break
+    default: return node
     }
-    return node
 }
 
 func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {
@@ -267,10 +224,9 @@ globalEnvironment.defineFunc("define") { list, environment in
     switch list[1] {
     case .Atom(let a):
         environment.define(a,toBe:evaluateNode(list[2], environment:environment))
-    case .List:
+    default:
         print("define's variable name must be an atom. exiting.")
         exit(-1)
-    default: break
     }
     
     return .nilList
@@ -302,7 +258,25 @@ globalEnvironment.defineFunc("write") { list, environment in
     }
     print(""); // newline
     return .nilList
+}
 
+globalEnvironment.defineFunc("lambda") { list, environment in
+    guard list.count >= 3 else {
+        print("lambda expressions must have at least two parameters.")
+        exit(-1)
+    }
+    
+    let parameters:[Node]
+    switch list[1] {
+    case .List(let l): parameters = l
+    default:
+        print("lambda expressions second parameter must be a list.")
+        exit(-1)
+    }
+    
+    let lambdaBody = Array(list[2..<list.count])
+    
+    return .Lambda(parameters, lambdaBody)
 }
 
 globalEnvironment.defineFunc("cond") { list, environment in
