@@ -180,7 +180,8 @@ func applyLambda(lambda: [Node], withParameters parameters: [Node], environment:
         for (param,value) in zip(l,parameters.dropFirst()) {
             switch param {
             case .Atom(let a):
-                newFrame.define(a,toBe:(value))
+                let parameterValue = evaluateNode(value, environment:environment)
+                newFrame.define(a,toBe:parameterValue)
             default:
                 print("couldn't set param: \(param) to value: \(value)")
                 continue
@@ -302,20 +303,16 @@ globalEnvironment.defineFunc("cond") { list, environment in
     guard list.count > 1 else { print("cond statements must have at least one condition. exiting.\n error in:\(list)"); exit(-1) }
     
     for conditionExpression in list.dropFirst() {
-        
         switch conditionExpression {
         case .List(let l):
             guard l.count >= 2 else {  print("cond expressions must be a list exiting.\n error in:\(list)"); exit(-1) }
-            let condition = evaluateNode(l[0],environment:environment)
-            if condition != .nilList {
+            if evaluateNode(l[0],environment:environment) != .nilList {
                 return eval(1)(list: l, environment:environment)
             }
         default:
-            print("cond expressions must be a list exiting.\n error in:\(list)")
+            print("cond expressions must be a list. exiting.\n error in:\(list)")
             exit(-1)
         }
-        
-        
     }
     
     return .nilList

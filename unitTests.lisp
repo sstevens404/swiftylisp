@@ -3,22 +3,22 @@
 
 	(define multResult (* 2 5))
 	(cond 
-		((= multResult 10.0) "sucess")
-		(else (write "'* 2 5 failed multResult"))
+		((= multResult 10) "sucess")
+		(else (write "'* 2 5' failed multResult"))
 	)
 
 	(cond 
-		((= (- 1) 1.0) "sucess")
+		((= (- 1) 1) "sucess")
 		(else (write "'- 1' failed"))
 	)
 
 	(cond 
-		((= (/ 3 2) 1.5) "sucess")
+		((= (/ 3 -2) -1.5) "sucess")
 		(else (write "'/ 3 2' failed"))
 	)
 
 	(cond 
-		((= (* 3.5 2) 7.0) "sucess") 
+		((= (* +3.5 2) 7) "sucess") 
 		(else (write "'* 3.5 2' failed"))
 	)
 
@@ -60,6 +60,18 @@
 	(define cons (lambda (x y) (lambda (m) (m x y))))
 	(define car (lambda (x) (x (lambda (a b) (a)))))
 	(define cdr (lambda (x) (x (lambda (a b) (b)))))
+
+	(define count-down 
+		(lambda (x) 
+			(write x)
+			(cond 
+				((= x 0) 0)
+				(else (count-down (- x 1)))
+			)
+		)
+	)
+
+	(count-down 10)
 
 	(define index 
 		(lambda (items i)
