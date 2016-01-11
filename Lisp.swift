@@ -14,11 +14,25 @@ extension Int32 {
     }
 }
 
+func fnext(fp: UnsafeMutablePointer<FILE>)->Int32 {
+    var c = fgetc(fp)
+    while c.s == ";" {
+        repeat {
+            c = fgetc(fp)
+        } while c.s != "\n" && c != EOF
+        c = fgetc(fp)
+    }
+    
+    return c
+}
+
 func fpeek(fp: UnsafeMutablePointer<FILE>)->Int32 {
-    let c = fgetc(fp)
+    let c = fnext(fp)
     fseek(fp,-1,SEEK_CUR)
     return c
 }
+
+
 
 enum Node:CustomStringConvertible, Equatable {
     case Atom(String)
@@ -53,8 +67,7 @@ class Frame {
     
     func define(name:String, toBe value:Node) {
         guard variables[name] == nil else {
-            print("Variable '\(name)' already defined. Exiting")
-            exit(-1)
+            fail("Variable '\(name)' already defined. Exiting")
         }
         variables[name] = value
     }
@@ -84,14 +97,14 @@ func parseAtom(fp:UnsafeMutablePointer<FILE>)->Node {
     var atom = ""
     
     let makeString:Bool
-    if fgetc(fp).s == "\"" {
+    if fnext(fp).s == "\"" {
         makeString = true
     } else {
         makeString = false
         fseek(fp,-1,SEEK_CUR)
     }
     while true {
-        let c = fgetc(fp)
+        let c = fnext(fp)
         
         if c == EOF {
             break
@@ -126,7 +139,7 @@ func parseAtom(fp:UnsafeMutablePointer<FILE>)->Node {
 func eatWhitespace(fp:UnsafeMutablePointer<FILE>) {
     var c:Int32
     repeat {
-        c = fgetc(fp)
+        c = fnext(fp)
     } while c == 10 || c == 9 || c.s == " "
     
     fseek(fp,-1,SEEK_CUR)
@@ -134,17 +147,16 @@ func eatWhitespace(fp:UnsafeMutablePointer<FILE>) {
 
 func parseList(fp:UnsafeMutablePointer<FILE>)->[Node] {
     var list = [Node]()
-    let next = fgetc(fp)
+    let next = fnext(fp)
     if next.s != "(" {
-        print("error, expected '(', got '\(next)'\nexiting.");
-        exit(0)
+        fail("error, expected '(', got '\(next)'\nexiting.");
     }
     
     while true {
         list.append(parseNode(fp))
         eatWhitespace(fp)
         
-        let c = fgetc(fp)
+        let c = fnext(fp)
         if c.s == ")" || c == EOF {
             return list
         }
@@ -167,53 +179,44 @@ func evaluateToNumber(node:Node, _ environment:Frame) -> Double{
     let number = evaluateNode(node, environment:environment)
     switch number {
     case .Number(let n): return n
-    default: print("unexpected non-number type: \"\(node)\". Exiting. "); exit(-1)
+    default: fail("unexpected non-number type: \"\(node)\". Exiting. ")
     }
 }
 
-func evaluateList(list:[Node],environment: Frame)->Node {
-    guard list.count > 0 else { print("calling empty list.\nExiting."); exit(-1) }
-    
-    switch evaluateNode(list[0], environment:environment) {
-    case .Lambda(let params, let body, let lambdaEnvironment):
-        let newFrame = Frame(parent:lambdaEnvironment)
-        
-//        #warning todo
-//        guard params.count == list.count - 1 else {
-//            print("calling \(params.count) parameter lambda with \(list.count-1) parameter.\nExiting.")
-//            exit(-1)
-//        }
-        
-        for (param,value) in zip(params,list.dropFirst()) {
-            switch param {
-            case .Atom(let a):
-                let parameterValue = evaluateNode(value, environment:environment)
-                newFrame.define(a,toBe:parameterValue)
-            default:
-                print("couldn't set param: \(param) to value: \(value)")
-                continue
-            }
-        }
-        
-        return eval(0)(list: body, environment:newFrame)
-    case .Function(let function):
-        return function(list,environment)
-    default:
-        print("Failed to call non-function:\n\(list)\n\nExiting.")
-        exit(-1)
-    }
+@noreturn func fail(reason: String) {
+    print(reason)
+    exit(-1)
 }
 
 func evaluateNode(node:Node, environment: Frame)->Node {
     switch node {
-    case .List(let l):
-        return evaluateList(l, environment:environment)
+    case .List(let list):
+        guard list.count > 0 else { fail("calling empty list.\nExiting.") }
+        
+        switch evaluateNode(list[0], environment:environment) {
+        case .Lambda(let params, let body, let lambdaEnvironment):
+            let newFrame = Frame(parent:lambdaEnvironment)
+            for (param,value) in zip(params,list.dropFirst()) {
+                switch param {
+                case .Atom(let a):
+                    let parameterValue = evaluateNode(value, environment:environment)
+                    newFrame.define(a,toBe:parameterValue)
+                default:
+                    fail("couldn't set param: \(param) to value: \(value)")
+                }
+            }
+            
+            return eval(0)(list: body, environment:newFrame)
+        case .Function(let function):
+            return function(list,environment)
+        default:
+            fail("Failed to call non-function:\n\(list)\n\nExiting.")
+        }
     case .Atom(let a):
         if let variableValue = environment.valueOf(a) {
             return variableValue // TODO: variable names should maybe be limited to atoms with letters
         } else {
-            print("Use of undefined variable \"\(a)\". exiting.")
-            exit(-1)
+            fail("Use of undefined variable \"\(a)\". exiting.")
         }
     default: return node
     }
@@ -229,14 +232,11 @@ func eval(startingIndex:Int = 0)(list:[Node], environment:Frame)->Node {
 
 var globalEnvironment = Frame(parent:nil)
 globalEnvironment.defineFunc("define") { list, environment in
-    guard list.count == 3 else { print("define statements must have at least 3 elements in the list. exiting."); exit(-1) }
+    guard list.count == 3 else { fail("define statements must have 2 parameters in the list. exiting.") }
     
     switch list[1] {
-    case .Atom(let a):
-        environment.define(a,toBe:evaluateNode(list[2], environment:environment))
-    default:
-        print("define's variable name must be an atom. exiting.")
-        exit(-1)
+    case .Atom(let a): environment.define(a,toBe:evaluateNode(list[2], environment:environment))
+    default: fail("define's variable name must be an atom. exiting.")
     }
     
     return .nilList
@@ -262,6 +262,35 @@ globalEnvironment.defineFunc("/") { list, environment in
     return .Number(result)
 }
 
+globalEnvironment.defineFunc("cons") { list, environment in
+    guard list.count > 1 else { fail("cons must have at least one parameter")}
+    var newList = list.dropFirst().map { evaluateNode($0, environment:environment) }
+    return .List(newList)
+}
+
+globalEnvironment.defineFunc("car") { list, environment in
+    guard list.count == 2 else { fail("cons must have one parameter")}
+    let evaluated = evaluateNode(list[1], environment:environment)
+    switch evaluated {
+    case .List(let items): return items.first ?? Node.nilList
+    default: fail("cannot car a non list: \(evaluated)")
+    }
+}
+
+globalEnvironment.defineFunc("cdr") { list, environment in
+    guard list.count == 2 else { fail("cdr must have one parameter") }
+    let evaluated = evaluateNode(list[1], environment:environment)
+    switch evaluated {
+    case .List(let items):
+        guard items.count > 0 else {return Node.nilList}
+        var newList = items
+        newList.removeAtIndex(0)
+        return .List(newList)
+    default:
+        fail("cannot cdr a non list: \(evaluated)")
+    }
+}
+
 globalEnvironment.defineFunc("write") { list, environment in
     for item in list.dropFirst() {
         print(evaluateNode(item,environment:environment), terminator:" ")
@@ -271,17 +300,13 @@ globalEnvironment.defineFunc("write") { list, environment in
 }
 
 globalEnvironment.defineFunc("lambda") { list, environment in
-    guard list.count >= 3 else {
-        print("lambda expressions must have at least two parameters.")
-        exit(-1)
-    }
+    guard list.count >= 3 else { fail("lambda expressions must have at least two parameters.") }
     
     let parameters:[Node]
     switch list[1] {
     case .List(let l): parameters = l
     default:
-        print("lambda expressions second parameter must be a list.")
-        exit(-1)
+        fail("lambda expressions second parameter must be a list.")
     }
     
     let lambdaBody = Array(list[2..<list.count])
@@ -290,18 +315,17 @@ globalEnvironment.defineFunc("lambda") { list, environment in
 }
 
 globalEnvironment.defineFunc("cond") { list, environment in
-    guard list.count > 1 else { print("cond statements must have at least one condition. exiting.\n error in:\(list)"); exit(-1) }
+    guard list.count > 1 else { fail("cond statements must have at least one condition. exiting.\n error in:\(list)")}
     
     for conditionExpression in list.dropFirst() {
         switch conditionExpression {
         case .List(let l):
-            guard l.count >= 2 else {  print("cond expressions must be a list exiting.\n error in:\(list)"); exit(-1) }
+            guard l.count >= 2 else {  fail("cond expressions must be a list exiting.\n error in:\(list)") }
             if evaluateNode(l[0],environment:environment) == .Str("true") {
                 return eval(1)(list: l, environment:environment)
             }
         default:
-            print("cond expressions must be a list. exiting.\n error in:\(list)")
-            exit(-1)
+            fail("cond expressions must be a list. exiting.\n error in:\(list)")
         }
     }
     
@@ -309,7 +333,7 @@ globalEnvironment.defineFunc("cond") { list, environment in
 }
 
 globalEnvironment.defineFunc("=") { list, environment in
-    guard list.count == 3 else { print("= statements must have 2 parameters. exiting."); exit(-1) }
+    guard list.count == 3 else { fail("= statements must have 2 parameters. exiting.") }
     
     if evaluateNode(list[1],environment:environment) == evaluateNode(list[2],environment:environment) {
         return .Str("true")
@@ -319,7 +343,7 @@ globalEnvironment.defineFunc("=") { list, environment in
 }
 
 globalEnvironment.defineFunc("<") { list, environment in
-    guard list.count == 3 else { print("< statements must have two parameters. exiting."); exit(-1) }
+    guard list.count == 3 else { fail("< statements must have two parameters. exiting.") }
     
     if evaluateToNumber(list[1],environment) < evaluateToNumber(list[2],environment) {
         return .Str("true")
@@ -328,7 +352,7 @@ globalEnvironment.defineFunc("<") { list, environment in
     }
 }
 
-guard Process.arguments.count > 1 else { print("specify lisp file to run"); exit(-1) }
+guard Process.arguments.count > 1 else { fail("specify lisp file to run") }
 var printDebug = false
 for param in Process.arguments.dropFirst() {
     

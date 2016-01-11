@@ -1,5 +1,6 @@
 ((lambda ()
-	(write "Running tests...")
+	; this is a comment
+	(write "Running tests...") ; this is a comment at the end of a line
 
 	(define null (define dfsjhkfsdjkhfdsjhk 1))
 	(define null? (lambda (x) (= x null)))
@@ -69,17 +70,15 @@
 
 	(write (sqrt 25))
 
-	(define cons (lambda (x y) (lambda (m) (m x y))))
-	(define car (lambda (x) (x (lambda (a b) a))))
-	(define cdr (lambda (x) (x (lambda (a b) b))))
+	
 
 	(define alpha (cons "a" "b"))
-	(test (car alpha) "a" "car")
-	(test (cdr alpha) "b" "cdr")
+	(test (car alpha) "a" "car 1")
+	(test (cdr alpha) (cons "b") "cdr 1")
 
 	(define beta (cons alpha "c"))
-	(test (car (car beta)) "a" "car")
-	(test (cdr beta) "c" "cdr")
+	(test (car (car beta)) "a" "car 2")
+	(test (cdr beta) (cons "c") "cdr 2")
 
 	(define index (lambda (items i)
 		(cond 
@@ -103,15 +102,14 @@
 		)))
 	(define write-list (lambda (items) (each (lambda (x) (write x)) items)))
 
-	(define numbers (cons 1 (cons 2 (cons 3 (cons 4 null)))))
+	(define numbers (cons 1 2 3 4))
 	(write-list numbers)
 	(write-list (map (lambda (x) (* 2 x)) numbers))
 
 	(define filter (lambda (predicate items)
 		(cond 
 			((null? items) 
-				null
-			)
+				null)
 			(else 
 				(cond 
 					(predicate (car items)) 
@@ -119,14 +117,9 @@
 					else 
 						(filter predicate (cdr items)))))))
 
-	(define thingy (lambda (input)
-		(define square (lambda (a) (* input a)))
-		(define double (lambda (a) (* a a)))
-		(cond 
-			((= i 0) 
-				(car items))
-			(else 
-				(index (cdr items) (- i 1))))))
-
 	(write "Tests complete")
+
+	; (define cons (lambda (x y) (lambda (m) (m x y))))
+	; (define car (lambda (x) (x (lambda (a b) a))))
+	; (define cdr (lambda (x) (x (lambda (a b) b))))
 ))
